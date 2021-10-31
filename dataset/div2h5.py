@@ -27,7 +27,7 @@ for subdir in ["HR", "X2", "X3", "X4"]:
 
     for i, path in enumerate(im_paths):
         # print(i)
-        if i < 200:
+        # if i < 200:
             im = imageio.imread(path)
             # print(path)
             grp.create_dataset(str(i), data=im)

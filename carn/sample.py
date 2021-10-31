@@ -123,10 +123,10 @@ if __name__ == "__main__":
     # cfg = ParaConfig()
     cfg.model = "carn"
     cfg.test_data_dir = "../dataset/B100"
-    cfg.scale = 2
+    cfg.scale = 4
     cfg.ckpt_path = "../checkpoint/carn_pretrained.pth"
     # cfg.ckpt_path = "../checkpoint/carn/carn_3000.pth"  # "../checkpoint/carn_pretrained.pth"
-    cfg.sample_dir = "../sample/"
+    cfg.sample_dir = "../sample/3000"
     cfg.group = 1
     cfg.shave = 20
     # parser.add_argument("--cuda", action="store_true")
