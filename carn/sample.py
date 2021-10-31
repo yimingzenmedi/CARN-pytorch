@@ -3,11 +3,11 @@ import json
 import time
 import importlib
 import argparse
-import numpy as np
+# import numpy as np
 from collections import OrderedDict
 import torch
-import torch.nn as nn
-from torch.autograd import Variable
+# import torch.nn as nn
+# from torch.autograd import Variable
 from dataset import TestDataset
 from PIL import Image
 
@@ -29,6 +29,7 @@ def save_image(tensor, filename):
     tensor = tensor.cpu()
     ndarr = tensor.mul(255).clamp(0, 255).byte().permute(1, 2, 0).numpy()
     im = Image.fromarray(ndarr)
+    print("filename:", filename)
     im.save(filename)
 
 
@@ -36,6 +37,7 @@ def sample(net, device, dataset, cfg):
     scale = cfg.scale
     for step, (hr, lr, name) in enumerate(dataset):
         if "DIV2K" in dataset.name:
+            print("!!!")
             t1 = time.time()
             h, w = lr.size()[1:]
             h_half, w_half = int(h/2), int(w/2)
@@ -47,9 +49,9 @@ def sample(net, device, dataset, cfg):
             lr_patch[2].copy_(lr[:, h-h_chop:h, 0:w_chop])
             lr_patch[3].copy_(lr[:, h-h_chop:h, w-w_chop:w])
             lr_patch = lr_patch.to(device)
-            
+
             sr = net(lr_patch, cfg.scale).detach()
-            
+
             h, h_half, h_chop = h*scale, h_half*scale, h_chop*scale
             w, w_half, w_chop = w*scale, w_half*scale, w_chop*scale
 
@@ -66,25 +68,28 @@ def sample(net, device, dataset, cfg):
             sr = net(lr, cfg.scale).detach().squeeze(0)
             lr = lr.squeeze(0)
             t2 = time.time()
-        
+
         model_name = cfg.ckpt_path.split(".")[0].split("/")[-1]
         sr_dir = os.path.join(cfg.sample_dir,
-                              model_name, 
+                              model_name,
                               cfg.test_data_dir.split("/")[-1],
                               "x{}".format(cfg.scale),
                               "SR")
         hr_dir = os.path.join(cfg.sample_dir,
-                              model_name, 
+                              model_name,
                               cfg.test_data_dir.split("/")[-1],
                               "x{}".format(cfg.scale),
                               "HR")
-        
+
         os.makedirs(sr_dir, exist_ok=True)
         os.makedirs(hr_dir, exist_ok=True)
+        print("sr_dir:", sr_dir, ", hr_dir:", hr_dir)
+        filename = name.split("\\")[-1]
+        print("name:", name, ", filename:", filename)
+        sr_im_path = os.path.join(sr_dir, "{}".format(filename.replace("HR", "SR")))
+        hr_im_path = os.path.join(hr_dir, "{}".format(filename))
 
-        sr_im_path = os.path.join(sr_dir, "{}".format(name.replace("HR", "SR")))
-        hr_im_path = os.path.join(hr_dir, "{}".format(name))
-
+        print("sr_im_path:", sr_im_path, ", hr_im_path:", hr_im_path)
         save_image(sr, sr_im_path)
         save_image(hr, hr_im_path)
         print("Saved {} ({}x{} -> {}x{}, {:.3f}s)"
@@ -93,7 +98,7 @@ def sample(net, device, dataset, cfg):
 
 def main(cfg):
     module = importlib.import_module("model.{}".format(cfg.model))
-    net = module.Net(multi_scale=True, 
+    net = module.Net(multi_scale=True,
                      group=cfg.group)
     print(json.dumps(vars(cfg), indent=4, sort_keys=True))
 
@@ -105,14 +110,25 @@ def main(cfg):
         new_state_dict[name] = v
 
     net.load_state_dict(new_state_dict)
-    
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     net = net.to(device)
-    
+
     dataset = TestDataset(cfg.test_data_dir, cfg.scale)
     sample(net, device, dataset, cfg)
- 
+
 
 if __name__ == "__main__":
     cfg = parse_args()
+    # cfg = ParaConfig()
+    cfg.model = "carn"
+    cfg.test_data_dir = "../dataset/B100"
+    cfg.scale = 2
+    cfg.ckpt_path = "../checkpoint/carn_pretrained.pth"
+    # cfg.ckpt_path = "../checkpoint/carn/carn_3000.pth"  # "../checkpoint/carn_pretrained.pth"
+    cfg.sample_dir = "../sample/"
+    cfg.group = 1
+    cfg.shave = 20
+    # parser.add_argument("--cuda", action="store_true")
+
     main(cfg)
